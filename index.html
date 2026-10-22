@@ -241,6 +241,21 @@ body:not(.js) .stage,body:not(.js) .minfo{display:none}
 .howto li{counter-increment:s;position:relative;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px 10px 46px;font-size:14.5px}
 .howto li::before{content:counter(s);position:absolute;left:12px;top:10px;width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-weight:800;font-size:13px;display:grid;place-items:center}
 .wxnote{margin:-4px 0 10px;font-size:12.5px;color:var(--muted)}
+
+/* plan: quick links + expandable full card under each stop */
+.plinks{grid-column:2 / -1;display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pl{display:inline-flex;align-items:center;min-height:40px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);text-decoration:none;font-weight:600;font-size:14px}
+.pl.pri{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.pdet{grid-column:1 / -1;margin-top:8px;background:var(--soft);border-radius:10px;padding:0 10px}
+.pdet > summary{list-style:none;cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:700;font-size:14.5px;color:var(--accent)}
+.pdet > summary::-webkit-details-marker{display:none}
+.pdet > summary::after{content:"+";margin-left:auto;font-size:19px;color:var(--muted)}
+.pdet[open] > summary::after{content:"–"}
+.pcard{border-left-width:5px;margin-bottom:8px;padding:12px}
+.pcard .why{background:var(--bg)}
+.pjump{display:flex;gap:8px;padding-bottom:10px}
+.pjump button{flex:1;font:inherit;font-size:14px;font-weight:700;min-height:42px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.pjump .mapb{flex:none;padding:0 14px}
 </style></head><body>
 <input type="radio" name="sort" id="s-top" class="sr" checked><input type="radio" name="sort" id="s-near" class="sr"><input type="radio" name="tab" id="t-start" class="sr" checked><input type="radio" name="tab" id="t-lunch" class="sr"><input type="radio" name="tab" id="t-do" class="sr"><input type="radio" name="tab" id="t-dinner" class="sr"><input type="radio" name="tab" id="t-drinks" class="sr"><input type="radio" name="tab" id="t-map" class="sr"><input type="radio" name="tab" id="t-plan" class="sr">
 <div class="top"><div class="topin">
@@ -1526,12 +1541,29 @@ function renderPlan(){
       var p = PL[x.id];
       h += '<div class="pitem"><span class="em">' + EMO[x.stage] + '</span><span class="nm">' + esc(p.n) + '<small>' + esc(DATA.stages[x.stage]) + ' · ' + esc(p.r) + '</small></span>' +
         '<button type="button" class="rm" data-rm="' + x.id + '" aria-label="Remove ' + esc(p.n) + '">×</button>' +
-        '<select data-day="' + x.id + '" aria-label="Day for ' + esc(p.n) + '">' + DAYS.map(function(o){ return '<option value="' + o[0] + '"' + (o[0] === x.day ? ' selected' : '') + '>' + esc(o[0] ? o[1] : 'Pick a day…') + '</option>'; }).join('') + '</select></div>';
+        '<select data-day="' + x.id + '" aria-label="Day for ' + esc(p.n) + '">' + DAYS.map(function(o){ return '<option value="' + o[0] + '"' + (o[0] === x.day ? ' selected' : '') + '>' + esc(o[0] ? o[1] : 'Pick a day…') + '</option>'; }).join('') + '</select>' + planLinks(x) +
+        '<details class="pdet"><summary>Show full details</summary><div class="pfull" data-card="' + cardId(x) + '"></div>' +
+        '<div class="pjump"><button type="button" data-open="' + x.id + '" data-st="' + x.stage + '">Open in ' + esc(DATA.stages[x.stage]) + ' tab</button>' +
+        '<button type="button" class="mapb" data-id="' + x.id + '">📍 Map</button></div></details></div>';
     });
     if (d[0] && prev !== 'H'){ var hb = hop(prev, 'H'); h += '<p class="pdone">' + (hb.m === 'same' ? 'Ends at the Dream' : hopTxt(hb) + ' back to the Dream') + '</p>'; }
     h += '</section>';
   });
   box.innerHTML = h;
+  $$('.pfull', box).forEach(function(f){
+    var c = document.getElementById(f.getAttribute('data-card')); if (!c) return;
+    var k = c.cloneNode(true); k.removeAttribute('id'); k.removeAttribute('style'); k.hidden = false;
+    $$('.jsrow, .next, .home', k).forEach(function(n){ n.remove(); });   // already in the plan; keep it compact
+    k.classList.add('pcard'); f.appendChild(k);
+  });
+}
+// The full card for a plan stop lives in the tab it was added from (or the first tab that lists it).
+function cardId(x){ var id = x.stage + '-' + x.id; return document.getElementById(id) ? id : PL[x.id].st[0] + '-' + x.id; }
+// Quick links copied from that card's buttons: Directions, Menu, Website / Reserve / Book.
+function planLinks(x){
+  var c = document.getElementById(cardId(x)); if (!c) return '';
+  var a = $$(':scope > .acts a', c).map(function(l){ return '<a class="pl' + (l.classList.contains('pri') ? ' pri' : '') + '" target="_blank" rel="noopener" href="' + esc(l.href) + '">' + esc(l.textContent) + '</a>'; });
+  return a.length ? '<div class="plinks">' + a.join('') + '</div>' : '';
 }
 $('#plan').addEventListener('change', function(e){
   var s = e.target.closest('select[data-day]'); if (!s) return;
@@ -1540,6 +1572,7 @@ $('#plan').addEventListener('change', function(e){
 $('#plan').addEventListener('click', function(e){
   var r = e.target.closest('[data-rm]'); if (r){ togglePlan(r.getAttribute('data-rm')); return; }
   if (e.target.id === 'pclear'){ if (confirm('Clear your whole plan?')){ plan = []; save(); syncPlan(); } return; }
+  var op = e.target.closest('[data-open]'); if (op){ openCard(op.getAttribute('data-open'), op.getAttribute('data-st')); return; }
   if (e.target.id === 'pmap'){ tab('map'); setTimeout(function(){ map.filter('plan'); }, 60); return; }
   if (e.target.id === 'pshare'){
     var txt = planText();
