@@ -260,6 +260,7 @@ body:not(.js) .stage,body:not(.js) .minfo{display:none}
 :root{--c-trolley:#C4561C;--c-me:#1A73E8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--c-trolley:#F29A62;--c-me:#6EA8FF}}
 :root[data-theme="dark"]{--c-trolley:#F29A62;--c-me:#6EA8FF}
+.fc.tchip{border:2px solid var(--c-trolley);margin-right:6px}
 .fc.tchip.on{background:var(--c-trolley);border-color:var(--c-trolley);color:#fff}
 .tline{fill:none;stroke:var(--c-trolley);stroke-linecap:round;stroke-linejoin:round;opacity:.8}
 .tline-c{fill:none;stroke:var(--surface);stroke-linecap:round;stroke-linejoin:round;opacity:.9}
@@ -1655,8 +1656,8 @@ map.init = function(){
   map.gTs = el('g', {}, svg); map.gMe = el('g', {class:'me'}, svg); trInit();
   // chips
   var chips = [['all','All'],['lunch','🥪 Lunch'],['do','🥃 Do'],['dinner','🍽️ Dinner'],['drinks','🎸 Drinks'],['plan','✅ My plan']];
-  $('#mchips').innerHTML = chips.map(function(c){ return '<button type="button" class="fc" data-f="' + c[0] + '">' + c[1] + '</button>'; }).join('') +
-    '<button type="button" class="fc tchip" id="mtr">🚋 Trolley stops</button>';
+  $('#mchips').innerHTML = '<button type="button" class="fc tchip" id="mtr">🚋 Trolley stops</button>' +
+    chips.map(function(c){ return '<button type="button" class="fc" data-f="' + c[0] + '">' + c[1] + '</button>'; }).join('');
   $('#mchips').addEventListener('click', function(e){ var b = e.target.closest('[data-f]'); if (b) map.filter(b.getAttribute('data-f')); });
   // gestures
   var ptrs = {}, last = null, pinch = null, moved = false;
@@ -1760,7 +1761,7 @@ map.select = function(id, fly){
 };
 map.info = function(id){
   var box = $('#minfo');
-  if (!id){ box.innerHTML = '<h3>Tap any pin</h3><p class="hopl"><em>See how far it is from the Dream, with the walking or driving route drawn on the map. Dotted = walk, solid = drive.</em></p>'; return; }
+  if (!id){ box.innerHTML = '<h3>Tap any pin</h3><p class="hopl"><em>See how far it is from the Dream, with the walking or driving route drawn on the map. Dotted = walk, solid = drive.</em></p><p class="tnote">On the trolley? Tap <b>🚋 Trolley stops</b> to see what&#x27;s near each stop, and the target button to see where you are.</p>'; return; }
   var p = PL[id], h = p.h ? null : hop('H', id), on = inPlan(id);
   box.innerHTML = '<h3>' + esc(p.n) + (p.top.length ? ' <span class="tp">Top pick</span>' : '') + '<span class="sc">' + p.sc + '</span></h3>' +
     '<p class="hopl">' + (h ? hopTxt(h).replace(' min', ' min ' + h.m) + ' · ' + miles(h.d) + ' mi from the Dream <em>(' + (h.m === 'walk' ? '🚕 ' + h.alt + ' min by car' : '🚶 ' + h.alt + ' min on foot') + ')</em>' : 'Inside the hotel') + '</p>' +
